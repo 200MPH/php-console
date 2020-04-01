@@ -129,17 +129,13 @@ class CommandDespatcher {
         
         $lock = $this->cli->isLocked();
         if($lock === false) {
-
             $this->abstractModule->setupOptions();
             $this->abstractModule->writeLockInfo();
             $this->abstractModule->execute();
             $this->abstractModule->unlock();
-            
         } else {
-
             CliColors::render("Process {$lock['PID']} locked at {$lock['DATE']}", CliColors::FG_WHITE, CliColors::BG_RED, true, true);
             $this->abstractModule->helpMsg();
-
         }
         
     }
