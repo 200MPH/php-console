@@ -1,0 +1,28 @@
+{
+    "name": "200mph/php-console",
+    "bin": ["bin/php-console"],
+    "type": "library",
+    "description": "Tools to create command line programs (CLI)",
+    "keywords": ["cli","command line", "console", "terminal"],
+    "license": "MIT",
+    "homepage": "https://github.com/200MPH/php-console",
+    "authors": [
+        {
+            "name": "Wojciech Brozyna",
+            "email": "wojciech.brozyna@gmail.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0",
+        "swiftmailer/swiftmailer": "6.*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "9.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "phpconsole\\": "src/",
+            "examples\\phpconsole\\": "examples/"
+        }
+    }
+}

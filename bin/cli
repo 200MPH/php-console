@@ -1,0 +1,34 @@
+#!/usr/bin/php
+<?php
+
+/** 
+ * This script allow only local users to execute programs via command line
+ * 
+ * @example ./vendor/bin/cli -h This will display help page
+ * @example ./vendor/bin/cli 'namespace\to\my\module' 
+ * @example ./vendor/bin/cli 'namespace\to\my\module' -h|--help This will display particular module help page
+ * @example ./vendor/bin/cli 'namespace\to\my\module' -v|--verbose Execute program with verbose mode
+ * @example ./vendor/bin/cli 'namespace\to\my\module' --your-option="your value" Execute program with your option
+ * 
+ * @author Wojciech Brozyna <wojciech.brozyna@gmail.com>
+ * @license https://github.com/200MPH/phpconsole/LICENSE
+ * @link https://github.com/200MPH/phpconsole/
+ */
+
+use phpconsole\CommandDespatcher;
+
+/* 
+ * Autoloading
+ * If you installed this library via composer, the best option is to leave below code as is
+ * If you have your own autoloader include it here
+ */
+require_once __DIR__ . '/../composer-autoload.php';
+
+try {
+    $cli = new CommandDespatcher();
+    $cli->despatch($argv);       
+} catch (RuntimeException $re) {
+    CommandDespatcher::renderException($re, false);
+} catch(Exception $e) {
+    CommandDespatcher::renderException($e);
+}
