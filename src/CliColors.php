@@ -31,7 +31,7 @@ class CliColors {
    /**
     * @var string
     */
-	const FG_LIGHT_BLUE = ';34';
+	const FG_LIGHT_BLUE = ';94';
    
    /**
     * @var string

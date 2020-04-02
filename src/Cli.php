@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Abstract Cli Module
- * Extend this class to create your own module
- * See in to ../examples folder so you will find some interesting solutions
+ * Abstract CLI
+ * Extend this class to create your own CLI program
+ * See in to ../examples folder so you will find how to examples
  *
  * @author Wojciech Brozyna <wojciech.brozyna@gmail.com>
  */
@@ -15,52 +15,32 @@ use ReflectionObject;
 abstract class Cli {
     
     /**
-     * Email address for notification
-     * Set email address in your child class if you wish to receive notifications
-     * 
+     * Program name. 
+     * If not set then class name will be taken as a name
      * @var string
      */
-    public $email = null;
+    public $name = '';
     
     /**
-     * Notification subject (email subject)
-     * Set it in you child class
+     * Program description
      * 
      * @var string
-     */
-    public $notificationSubject = 'M-Commander Notification';
-    
-    /**
-     * Description
      */
     public $description = '';
     
     /**
-     * Average operation time
+     * Average operation time you assume the program may take
+     * 
      * @var int Seconds
      */
     public $avgOpTime = 60;
-        
-    /**
-     * Args count
-     * 
-     * @var int
-     */
-    protected $argc;
     
     /**
-     * Cli arguments
-     * 
-     * @var array
+     * Default process file locations.
+     * Change accordingly if necessary.
+     * @var string
      */
-    protected $args = [];
-    
-    /**
-     * Default options
-     * 
-     * @var array
-     */
-    protected $defaultOptions = [];
+    public $location = '/tmp';
     
     /**
      * Verbose mode
@@ -69,6 +49,20 @@ abstract class Cli {
      * @var bool
      */
     protected $verbose = false;
+    
+    /**
+     * Email address for notification
+     * 
+     * @var string
+     */
+    protected $email = null;
+    
+    /**
+     * Notification subject (email subject)
+     *  
+     * @var string
+     */
+    protected $emailSubject = 'CLI Notification';
     
     /**
      * Write output file
@@ -84,11 +78,12 @@ abstract class Cli {
     private $lock = false;
     
     /**
-     * Lock folder
+     * Process file.
+     * Absolute path.
      * 
      * @var string
      */
-    private $lockFile = '/tmp/';
+    private $processFile = '';
     
     /**
      * @var ReflectionObject
@@ -96,46 +91,35 @@ abstract class Cli {
     private $reflection;
     
     /**
-     * Disable email notification
-     * 
-     * @var bool
-     */
-    private $notify = true;
-    
-    /**
      * Execute command for module
      * Do the job you want to do in this function
      * 
      * @return void
      */
-    abstract public function execute(); 
+    abstract public function run(): void; 
     
     /**
-     * 
-     * @param int $cliArgsCount CLI arguments count
-     * @param array $cliArgs CLI arguments
+     * Get program options.
+     * @return array If no options return an empty array.
      */
-    public function __construct($cliArgsCount, $cliArgs) 
-    {
-        
-        $this->argc = $cliArgsCount;
-        $this->args = $cliArgs;
-        $this->reflection = new ReflectionObject( $this );
-        $this->lockFile .= $this->reflection->getShortName() . '.' . microtime(true) . '.lock';
-               
-    }
+    abstract public function getOptions(): array;
     
     /**
-    * 
     * Render coloured output
     * 
     * @param string $string String to be coloured
-    * @param const $foreground_color [optional] Foreground colour code
-    * @param const $background_color [optional] Background colour code
-    * @param bool $newLine [optional] Set true if you wish attach end line code '\n'
+    * @param string $foreground_color [optional] Foreground colour code
+    * @param string $background_color [optional] Background colour code
+    * @param bool $newLine [optional] Set true if you wish attach new line code
     * @param bool $bold [optional] Set font bold
+     * 
+     * @return void
     */
-    static public function render($string, $foreground_color = null, $background_color = null, $newLine = false, $bold = false) 
+    static public function render(string $string, 
+                                  string $foreground_color = null, 
+                                  string $background_color = null, 
+                                  bool $newLine = false, 
+                                  bool $bold = false): void
     {
         $bolder = 0;
         $colored_string = "";
@@ -164,166 +148,102 @@ abstract class Cli {
     }
 
     /**
-     * Render standard gray text output
+     * Render standard text output
      * 
      * @param string Text to display
      * @return void
      */
-    public function output($string)
+    public function output($string): void
     {
-        
         if($this->verbose === true) {
-            
-            print($string);
-            
+            print($string);       
         }
         
         $this->saveOutput($string);
-        
     }
     
     /**
-     * Render success text output
+     * Render success text output.
      * Display green text in to console output.
-     * For more colors please use CliColors::render()
      * 
      * @param string Text to display
      * @return void
      */
-    public function successOutput($string)
+    public function outputSuccess($string): void
     {
-        
-        if($this->verbose === true) {
-        
+        if($this->verbose === true) {   
             CliColors::render($string, CliColors::FG_GREEN, null);
-        
         }
         
         $this->saveOutput($string);
-        
     }
     
     /**
      * Render error text output
      * Display red text in to console output.
-     * For more colors please use CliColors::render()
      * 
      * @param string Text to display
      * @return void
      */
-    public function errorOutput($string)
+    public function outputError($string): void
     {
-        
         if($this->verbose === true) {
-            
             CliColors::render($string, CliColors::FG_RED, null);
-            
         }
         
         $this->saveOutput($string);
-        
     }
     
     /**
      * Render warning text output
      * Display yellow text in to console output.
-     * For more colors please use CliColors::render()
      * 
      * @param string Text to display
      * @return void
      */
-    public function warningOutput($string)
+    public function outputWarning($string): void
     {
-        
         if($this->verbose === true) {
-            
             CliColors::render($string, CliColors::FG_YELLOW, null);
-            
         }
         
         $this->saveOutput($string);
-        
     }
     
     /**
-     * Send email notification
-     * 
-     * @param const $type Notify::SUCCESS | Notify::ERROR | Notify::INFO
-     * @param string $message Message to be send. HTML code accepted
-     * 
-     * @return bool
-     */
-    public function notify($type, $message)
-    {
-        
-        if($this->notify === true && empty($this->email) === false) {
-            
-            $notify = new Notify();
-            
-            $notify->setEmail($this->email);
-            
-            $notify->setSubject($this->notificationSubject);
-            
-            $notify->setMessage($message);
-            
-            return $notify->send($type);
-            
-        }
-        
-        return false;
-        
-    }
-    
-    /**
-     * Write lock info
+     * Write process info
      * 
      * @return string File location
      */
-    public function writeLockInfo()
+    public function writePrcessFile(): string
     {
-        
         $phpPid = getmypid();
+        $this->processFile = $this->location . $this->getName() . microtime(true) . '.lock';
         $date = date('Y-m-d H:i:s');
-        $name = $this->reflection->getShortName();
-        
         $content = ['PID' => $phpPid, 
                     'DATE' => $date, 
-                    'NAME' => $name, 
+                    'NAME' => $this->getName(),
                     'DESC' => $this->description, 
-                    'FILE' => $this->lockFile, 
+                    'FILE' => $this->processFile, 
                     'AVG_OP_TIME' => $this->avgOpTime, 
                     'LOCK' => $this->lock];
         
-        file_put_contents($this->lockFile, json_encode($content));
-        chmod($this->lockFile, 0777);
+        file_put_contents($this->processFile, json_encode($content));
+        chmod($this->processFile, 0777);
         
-        return $this->lockFile;
-        
-    }
-    
-    /**
-     * Delete process
-     * 
-     * @param string $file
-     * @return bool
-     */
-    public function deleteProcFile(string $file) 
-    {
-        
-        if(file_exists($file) === true) {
-            return unlink($file);
+        if($this->lock === true) {
+            $this->warningOutput("Process {$phpPid} locked at {$date}" . PHP_EOL);
         }
         
-        return true;
-        
+        return $this->processFile;   
     }
     
     /**
-     * Show help message for module
+     * Show help message for program
      * 
      * @return void
      */
-    public function helpMsg()
+    public function showHelpMsg(): void
     {
         
         foreach($this->defaultOptions as $array) {
@@ -345,19 +265,71 @@ abstract class Cli {
     }
     
     /**
+     * Find locked process
+     * 
+     * @return array|false Return process data or FALSE if not found.
+     */
+    public function findLockedProcess() 
+    {
+        foreach($this->getProcessFiles() as $file) {
+            $process = $this->parseProcessFile($file);
+            
+            if($process['LOCK'] === true) {
+                return $process;
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Delete process file
+     * 
+     * @return void
+     */
+    public function deleteProcessFile(): void
+    {
+        $lock = $this->parseProcessFile($this->processFile);  
+        
+        if(file_exists($this->processFile) === true) {
+            unlink($this->processFile);
+        }
+        
+        if($lock['LOCK'] === true) {    
+            $this->successOutput("Process {$lock['PID']} unlocked (Locked at {$lock['DATE']})" . PHP_EOL);
+        }
+    }
+    
+    /**
+     * Set program options
+     * 
+     * @throw RuntimeException Option method not defined
+     * @return void
+     */
+    public function setOptions(): void
+    {
+        foreach($this->getAllOptions() as $option) {
+                
+            if(method_exists($this, $option['callback']) === true) {
+                ///execute callable method
+                $this->{$option['callback']}();
+            } else {
+                throw new \RuntimeException("Option method doesn't exists", CliCodes::OPT_METH_ERR);
+            }
+            
+        }
+    }
+    
+    /**
      * Set verbose
      * 
      * @return void
      */
-    protected function verbose()
+    protected function verbose(): void
     {
-        
-        print("Verbose mode ");
-        
+        CLiColors::render("Verbose mode ");   
         CliColors::render("ON", CliColors::FG_GREEN, null, true);
-        
         $this->verbose = true;
-        
     }
     
     /**
@@ -367,7 +339,6 @@ abstract class Cli {
      */
     protected function writeOutput()
     {
-        
         foreach($this->args as $key => $value) {
             
             if($value === '-w' || $value === '--write-output') {
@@ -391,125 +362,7 @@ abstract class Cli {
      */
     protected function lock()
     {
-        
-        $this->lock = true;
-        $phpPid = getmypid();
-        $date = date('Y-m-d H:i:s');
-        $this->warningOutput("Process {$phpPid} locked at {$date}" . PHP_EOL);
-                
-    }
-    
-    /**
-     * Disable notification
-     * 
-     * @return void
-     */
-    protected function disableNotification()
-    {
-        
-        $this->notify = false;
-        
-        $this->output('Notification ');
-        $this->warningOutput('DISABLED' . PHP_EOL);
-        
-    }
-    
-    /**
-     * Disable error notification
-     * 
-     * @return void
-     */
-    protected function disableErrors()
-    {
-        
-        ini_set('display_errors', '0');
-        
-        $this->output('Error output ');
-        $this->warningOutput('DISABLED' . PHP_EOL);
-        
-    }
-    
-    /**
-     * Check if process is locked, if so will send lock e-mail notification
-     * 
-     * @return array|false
-     */
-    public function isLocked()
-    {
-        
-        $searchPattern = '/tmp/';
-        $searchPattern.= $this->reflection->getShortName();
-        $searchPattern.= '.*.*.lock';
-        $files = glob($searchPattern);
-        
-        if(empty($files) === true) {
-            return false;
-        }
-        
-        $this->lockFile = end($files);
-        $lock = $this->parseLockString();
-        
-        if($lock['LOCK'] === true) {
-            $this->lockNotify();
-            return $lock;
-        } else {
-            return false;
-        }
-        
-    }
-    
-    /**
-     * Unlock process
-     * 
-     * @return void
-     */
-    public function unlock()
-    {
-        
-        $lock = $this->parseLockString();
-        
-        if(file_exists($this->lockFile) === true) {
-            unlink($this->lockFile);
-        }
-        
-        if($lock['LOCK'] === true) {    
-            $this->successOutput("Process {$lock['PID']} unlocked (Locked at {$lock['DATE']})" . PHP_EOL);
-        }
-        
-    }
-    
-    /**
-     * Load default options
-     * 
-     * @return void
-     */
-    protected function loadOptions()
-    {
-        
-        $this->defaultOptions[] = array('options' => array('--disable-errors'), 
-                                        'callback' => 'disableErrors', 
-                                        'description' => 'Disable errors notification');
-        
-        $this->defaultOptions[] = array('options' => array('--disable-notification'), 
-                                        'callback' => 'disableNotification', 
-                                        'description' => 'Disable email notification');
-        
-        $this->defaultOptions[] = array('options' => array('-h', '--help'), 
-                                        'callback' => 'helpMsg', 
-                                        'description' => 'Display this page');
-        
-        $this->defaultOptions[] = array('options' => array('-l', '--lock'), 
-                                        'callback' => 'lock', 
-                                        'description' => 'Lock module process. Will not let you run another instance of this same module until current is finished. However you can execute script for another module.');
-        
-        $this->defaultOptions[] = array('options' => array('-v', '--verbose'), 
-                                        'callback' => 'verbose', 
-                                        'description' => 'Verbose mode');
-        
-        $this->defaultOptions[] = array('options' => array('-w', '--write-output'), 
-                                        'callback' => 'writeOutput', 
-                                        'description' => "Write output in to file. Eg ./m-commander 'myNamespace\MyModule' -w /home/user/test.log");
-        
+        $this->lock = true;         
     }
     
     /**
@@ -529,65 +382,28 @@ abstract class Cli {
     }
     
     /**
-     * Setup internal arguments options
-     * Each module might have different options.
+     * Get program all options
      * 
-     * @return void
+     * @return array
      */
-    final public function setupOptions()
+    private function getAllOptions(): array
     {
-       
-        $this->loadOptions();
-        
-        foreach ($this->args as $k => $value) {
-            
-            //first arg is script name and path to module, we don't need it here
-            if($k <= 1) { continue; }
-                        
-            if(strpos($value, '-') === 0 || strpos($value, '--') === 0) {
-                
-                $this->loadInternalOption($value);
-                
-            }
-            
-        }
-                
+        array_merge($this->getDefaultOptions(), $this->getOptions());       
     }
     
     /**
-     * Execute internal option
+     * Get process files.
      * 
-     * @param string $value Option value
-     * @throw RuntimeException Invalid argument
+     * @return array
      */
-    final private function loadInternalOption($value)
+    private function getProcessFiles(): array
     {
+        $searchPattern = $this->location;
+        $searchPattern.= $this->getName();
+        $searchPattern.= '.*.*.lock';
+        $files = glob($searchPattern);
         
-        foreach($this->defaultOptions as $array) {
-            
-            if(in_array($value, $array['options']) === false) {
-                
-                continue;
-                
-            }
-                
-            if(method_exists($this, $array['callback'])) {
-
-                ///execute callable method
-                $this->{$array['callback']}();
-
-                return 0;
-
-            } else {
-
-                throw new \RuntimeException("Option method doesn't exists", CliCodes::OPT_METH_ERR);
-
-            }
-            
-        }
-        
-        throw new \RuntimeException("Invalid argument: {$value} \nTry -h or --help to see all available options", CliCodes::OPT_FAIL);
-        
+        return is_array($files) ? $files : [];
     }
     
     /**
@@ -638,39 +454,54 @@ abstract class Cli {
     }
     
     /**
-     * Parse lock string
+     * Parse file process string
      * 
+     * @param string $file
      * @return array
      */
-    final private function parseLockString()
+    private function parseProcessFile(string $file): array
     {
-        
-        if(file_exists($this->lockFile) === false) {
+        if(file_exists($file) === false) {
             return ['PID' => 0, 
                     'DATE' => '', 
                     'NAME' => '', 
                     'DESC' => '', 
                     'FILE' => '', 
                     'AVG_OP_TIME' => $this->avgOpTime, 
-                    'LOCK' => $this->lock];
+                    'LOCK' => false];
         }
         
-        $json = file_get_contents($this->lockFile);
+        $json = file_get_contents($file);
         $arr = json_decode($json, true);    
                 
-        return $arr;
-        
+        return $arr;   
     }
     
     /**
-     * Send email notification
+     * Get program name
+     * 
+     * @return string
+     */
+    private function getName(): string
+    {
+        if(empty($this->name) === false) {
+            return $this->name;
+        } else {
+            $this->reflection = new ReflectionObject($this);
+            $this->name = $this->reflection->getShortName();
+            return $this->name;
+        }
+    }
+    
+    /**
+     * Send process lock notification
      * 
      * @return void
      */
-    final private function lockNotify()
+    public function sendLockNotification(): void
     {
         
-        $lockData = $this->parseLockString();    
+        $lockData = $this->parseProcessFile($this->processFile);    
         $this->notificationSubject = "Process #{$lockData['PID']} locked!";
 
         $msg = "PID: <strong>{$lockData['PID']}</strong> \n";
@@ -682,9 +513,56 @@ abstract class Cli {
         $msg .= "\t 2. Previous instance crashed and left lock file. \n\n";
         $msg .= "Unlock instructions: \n";
         $msg .= "\t 1. Make sure that unlock process is safe\n";
-        $msg .= "\t 2. Remove lock file {$this->lockFile} (note that file name is various)\n";
+        $msg .= "\t 2. Remove lock file {$this->processFile} (note that file name is various)\n";
 
-        $this->notify(Notify::ERROR, $msg);
+        $this->send(Notify::ERROR, $msg);
+        
+    }
+    
+    /**
+     * Send email notification
+     * 
+     * @param const $type Notify::SUCCESS | Notify::ERROR | Notify::INFO
+     * @param string $message Message to be send. HTML code accepted
+     * 
+     * @return bool
+     */
+    protected function send($type, $message): bool
+    {
+        if(empty($this->email) === false) {       
+            $notify = new Notify();
+            $notify->setEmail($this->email);
+            $notify->setSubject($this->emailSubject);
+            $notify->setMessage($message);
+            return $notify->send($type);
+        }
+
+        return false;        
+    }
+    
+    /**
+     * Get program default options
+     * 
+     * @return array
+     */
+    private function getDefaultOptions(): array
+    {
+        
+        $this->defaultOptions[] = array('options' => array('-h', '--help'), 
+                                        'callback' => 'helpMsg', 
+                                        'description' => 'Display this page');
+        
+        $this->defaultOptions[] = array('options' => array('-l', '--lock'), 
+                                        'callback' => 'lock', 
+                                        'description' => 'Lock module process. Will not let you run another instance of this same module until current is finished. However you can execute script for another module.');
+        
+        $this->defaultOptions[] = array('options' => array('-v', '--verbose'), 
+                                        'callback' => 'verbose', 
+                                        'description' => 'Verbose mode');
+        
+        $this->defaultOptions[] = array('options' => array('-w', '--write-output'), 
+                                        'callback' => 'writeOutput', 
+                                        'description' => "Write output in to file. Eg ./m-commander 'myNamespace\MyModule' -w /home/user/test.log");
         
     }
 }

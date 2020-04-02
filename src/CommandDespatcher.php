@@ -78,10 +78,24 @@ class CommandDespatcher {
      */
     public function displayHelp()
     {
+        $this->renderAuthor();
         Cli::render("Please provide class name that you wish to process with full namespace.", 
                     CliColors::FG_BLACK, CliColors::BG_YELLOW, true);
         Cli::render("Example: ./vendor/bin/cli 'namespace\\to\\my\\program' -h", 
                     CliColors::FG_BLACK, CliColors::BG_YELLOW, true);
+    }
+    
+    /**
+     * Get author
+     * 
+     * @return string
+     */
+    private function renderAuthor()
+    {
+        $version = file_get_contents(__DIR__ . '/../version.txt');
+        $str = "PHP-Consol {$version}" . PHP_EOL;
+        $str.= "Author: Wojciech Brozyna <https://github.com/200MPH>" . PHP_EOL . PHP_EOL;
+        Cli::render($str, CliColors::FG_LIGHT_BLUE);
     }
     
     /**
@@ -127,15 +141,17 @@ class CommandDespatcher {
     private function execute()
     {
         
-        $lock = $this->cli->isLocked();
-        if($lock === false) {
-            $this->abstractModule->setupOptions();
-            $this->abstractModule->writeLockInfo();
-            $this->abstractModule->execute();
-            $this->abstractModule->unlock();
+        $process = $this->cli->findLockedProcess();
+        if($process === false) {
+            // the method call sequence is important here !
+            $this->cli->setOptions();
+            $this->cli->writeProcessFile();
+            $this->cli->run();
+            $this->cli->deleteProcessFile();
         } else {
-            CliColors::render("Process {$lock['PID']} locked at {$lock['DATE']}", CliColors::FG_WHITE, CliColors::BG_RED, true, true);
-            $this->abstractModule->helpMsg();
+            $this->cli->outputWarning("Process {$process['PID']} locked at {$process['DATE']}" . PHP_EOL);
+            $this->cli->sendLockNotification();
+            $this->cli->showHelpMsg();
         }
         
     }

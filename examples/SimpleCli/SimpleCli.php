@@ -6,16 +6,17 @@
  * @author Wojciech Brozyna <wojciech.brozyna@gmail.com>
  */
 
-namespace examples\phpconsole\SimpleModule;
+namespace examples\phpconsole\SimpleCli;
 
 use phpconsole\Cli;
 
-class SimpleModule extends Cli {
+class SimpleCli extends Cli {
     
     /**
      * This is mandatory function which is required by abstraction
+     * @return void
      */
-    public function execute()
+    public function run(): void
     {
         // PHP_EOL does the same thing as "\n"
         
@@ -24,5 +25,14 @@ class SimpleModule extends Cli {
         $this->warningOutput('Warning have yellow colour' . PHP_EOL);
         $this->errorOutput('Warning have red colour'  .PHP_EOL);
     }
-    
+
+    /**
+     * We do not have any options in this program so we need to return empty array
+     * @return array
+     */
+    public function getOptions(): array
+    {
+        return [];
+    }
+
 }
