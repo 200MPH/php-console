@@ -81,7 +81,7 @@ class CommandDespatcher {
         $this->renderAuthor();
         Cli::render("Please provide class name that you wish to process with full namespace.", 
                     CliColors::FG_BLACK, CliColors::BG_YELLOW, true);
-        Cli::render("Example: ./vendor/bin/cli 'namespace\\to\\my\\program' -h", 
+        Cli::render("Example: ./vendor/bin/php-console --help 'namespace\\to\\my\\program'", 
                     CliColors::FG_BLACK, CliColors::BG_YELLOW, true);
     }
     
@@ -92,10 +92,14 @@ class CommandDespatcher {
      */
     private function renderAuthor()
     {
-        $version = file_get_contents(__DIR__ . '/../version.txt');
-        $str = "PHP-Consol {$version}" . PHP_EOL;
-        $str.= "Author: Wojciech Brozyna <https://github.com/200MPH>" . PHP_EOL . PHP_EOL;
-        Cli::render($str, CliColors::FG_LIGHT_BLUE);
+        $verbose = getopt('v', array('verbose'));
+        
+        if(isset($verbose['v']) || isset($verbose['verbose'])) {
+            $version = file_get_contents(__DIR__ . '/../version.txt');
+            $str = "PHP-Console {$version}" . PHP_EOL;
+            $str.= "Author: Wojciech Brozyna <https://github.com/200MPH>" . PHP_EOL . PHP_EOL;
+            Cli::render($str, CliColors::FG_LIGHT_BLUE);
+        }
     }
     
     /**
@@ -105,15 +109,8 @@ class CommandDespatcher {
      */
     private function isHelpNeeded()
     {
-        if(isset($this->arguments[1]) === false) {
-            return true;
-        } else {
-            if($this->arguments[1] == '-h' || $this->arguments[1] == '--help') {
-                return true;
-            }
-        }
-        
-        return false;   
+        $class = end($this->arguments);
+        return !class_exists($class);
     }
     
     /**
@@ -123,13 +120,13 @@ class CommandDespatcher {
      */
     private function loadObject()
     {
-        $module = $this->arguments[1];
+        $class = end($this->arguments);
         
-        if(class_exists($module) === true) {
-            $this->cli = new $module();
+        if(class_exists($class) === true) {
+            $this->cli = new $class();
             $this->execute();
         } else {
-            throw new \RuntimeException("Class '{$module}' not found", ErrorCodes::MOD_NOT_FOUND);
+            throw new \RuntimeException("Class '{$class}' not found", ErrorCodes::MOD_NOT_FOUND);
         }
     }
     
@@ -141,6 +138,7 @@ class CommandDespatcher {
     private function execute()
     {
         
+        $this->renderAuthor();
         $process = $this->cli->findLockedProcess();
         if($process === false) {
             // the method call sequence is important here !
@@ -150,8 +148,8 @@ class CommandDespatcher {
             $this->cli->deleteProcessFile();
         } else {
             $this->cli->outputWarning("Process {$process['PID']} locked at {$process['DATE']}" . PHP_EOL);
-            $this->cli->sendLockNotification();
             $this->cli->showHelpMsg();
+            $this->cli->sendLockNotification();
         }
         
     }

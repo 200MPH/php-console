@@ -21,9 +21,9 @@ class SimpleCli extends Cli {
         // PHP_EOL does the same thing as "\n"
         
         $this->output("Hello World!" . PHP_EOL);
-        $this->successOutput('Hurra! This is my first CLI module' . PHP_EOL);
-        $this->warningOutput('Warning have yellow colour' . PHP_EOL);
-        $this->errorOutput('Warning have red colour'  .PHP_EOL);
+        $this->outputSuccess('Hurra! This is my first CLI module' . PHP_EOL);
+        $this->outputWarning('Warning have yellow colour' . PHP_EOL);
+        $this->outputError('Error have red colour'  .PHP_EOL);
     }
 
     /**

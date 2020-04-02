@@ -172,7 +172,7 @@ abstract class Cli {
     public function outputSuccess($string): void
     {
         if($this->verbose === true) {   
-            CliColors::render($string, CliColors::FG_GREEN, null);
+            Cli::render($string, CliColors::FG_GREEN, null);
         }
         
         $this->saveOutput($string);
@@ -188,7 +188,7 @@ abstract class Cli {
     public function outputError($string): void
     {
         if($this->verbose === true) {
-            CliColors::render($string, CliColors::FG_RED, null);
+            Cli::render($string, CliColors::FG_RED, null);
         }
         
         $this->saveOutput($string);
@@ -204,7 +204,7 @@ abstract class Cli {
     public function outputWarning($string): void
     {
         if($this->verbose === true) {
-            CliColors::render($string, CliColors::FG_YELLOW, null);
+            Cli::render($string, CliColors::FG_YELLOW, null);
         }
         
         $this->saveOutput($string);
@@ -215,10 +215,10 @@ abstract class Cli {
      * 
      * @return string File location
      */
-    public function writePrcessFile(): string
+    public function writeProcessFile(): string
     {
         $phpPid = getmypid();
-        $this->processFile = $this->location . $this->getName() . microtime(true) . '.lock';
+        $this->processFile = $this->location . '/' .$this->getName() . '.' . microtime(true) . '.lock';
         $date = date('Y-m-d H:i:s');
         $content = ['PID' => $phpPid, 
                     'DATE' => $date, 
@@ -245,23 +245,15 @@ abstract class Cli {
      */
     public function showHelpMsg(): void
     {
-        
-        foreach($this->defaultOptions as $array) {
-            
-            foreach($array['options'] as $option) {
-                
-                CliColors::render($option . PHP_EOL, CliColors::FG_GREEN);
-                
-            }
-            
-            print("\t\t\t");
-            
-            CliColors::render($array['description'] . PHP_EOL, CliColors::FG_YELLOW);
-            
+        foreach($this->getAllOptions() as $option) {
+            $optionStr = '-' . $option['shortOption'] . '|--' . $option['longOption'];
+            Cli::render($optionStr, CliColors::FG_GREEN, null, true);
+            Cli::render($option['description'], CliColors::FG_YELLOW, null, true);
+            Cli::render(PHP_EOL);
         }
         
-        exit();
-        
+        // terminate if this method is called
+        exit();   
     }
     
     /**
@@ -308,15 +300,32 @@ abstract class Cli {
      */
     public function setOptions(): void
     {
-        foreach($this->getAllOptions() as $option) {
-                
-            if(method_exists($this, $option['callback']) === true) {
-                ///execute callable method
-                $this->{$option['callback']}();
-            } else {
-                throw new \RuntimeException("Option method doesn't exists", CliCodes::OPT_METH_ERR);
+        
+        $options = $this->getAllOptions();
+        $short = '';
+        $longArr = [];
+        
+        foreach($options as $option) {
+            $short .= $option['shortOption'];
+            $long = $option['longOption'];
+            if($option['hasValue'] === true && $option['requiredValue'] === true) {
+                // required value
+                $short .= ':';
+                $long .= ':';
+            } elseif($option['hasValue'] === true) {
+                // optional value
+                $short .= '::';
+                $long .= ':';
             }
-            
+            $longArr[] = $long;
+        }
+        
+        $cliOptions = getopt($short, $longArr);
+        
+        foreach($options as $option) {
+            if(isset($cliOptions[$option['shortOption']]) || isset($cliOptions[$option['longOption']])) {
+                $this->{$option['callback']}();
+            }
         }
     }
     
@@ -327,8 +336,6 @@ abstract class Cli {
      */
     protected function verbose(): void
     {
-        CLiColors::render("Verbose mode ");   
-        CliColors::render("ON", CliColors::FG_GREEN, null, true);
         $this->verbose = true;
     }
     
@@ -369,26 +376,30 @@ abstract class Cli {
      * Save output in to file
      * 
      * @param string $string
+     * @return void
      */
-    final protected function saveOutput($string)
+    final protected function saveOutput($string): void
     {
-        
-        if($this->writeOutputFile !== false) {
-            
+        if($this->writeOutputFile !== false) {       
             file_put_contents($this->writeOutputFile, $string, FILE_APPEND);
-            
         }
-        
     }
     
     /**
-     * Get program all options
+     * Get program all options, default ones and also from child class.
      * 
      * @return array
      */
     private function getAllOptions(): array
     {
-        array_merge($this->getDefaultOptions(), $this->getOptions());       
+        
+//        if(method_exists($this, $option['callback']) === true) {
+//            ///execute callable method
+//            $this->{$option['callback']}();
+//        } else {
+//            throw new \RuntimeException("Option method {$option['callback']}() doesn't exists", ErrorCodes::OPT_METH_ERR);
+//        }
+        return array_merge($this->getDefaultOptions(), $this->getOptions());       
     }
     
     /**
@@ -548,21 +559,35 @@ abstract class Cli {
     private function getDefaultOptions(): array
     {
         
-        $this->defaultOptions[] = array('options' => array('-h', '--help'), 
-                                        'callback' => 'helpMsg', 
-                                        'description' => 'Display this page');
+        $options = [];
+        $options[] = array('shortOption' => 'h',
+                           'longOption' => 'help',
+                           'hasValue' => false,
+                           'requiredValue' => false,
+                           'callback' => 'showHelpMsg', 
+                           'description' => 'Display this page');
         
-        $this->defaultOptions[] = array('options' => array('-l', '--lock'), 
-                                        'callback' => 'lock', 
-                                        'description' => 'Lock module process. Will not let you run another instance of this same module until current is finished. However you can execute script for another module.');
+        $options[] = array('shortOption' => 'l',
+                           'longOption' => 'lock',
+                           'hasValue' => false,
+                           'requiredValue' => false,
+                           'callback' => 'lock', 
+                           'description' => 'Lock module process. Will not let you run another instance of this same module until current is finished. However you can execute script for another module');
         
-        $this->defaultOptions[] = array('options' => array('-v', '--verbose'), 
-                                        'callback' => 'verbose', 
-                                        'description' => 'Verbose mode');
+        $options[] = array('shortOption' => 'v',
+                           'longOption' => 'verbose',
+                           'hasValue' => false,
+                           'requiredValue' => false,
+                           'callback' => 'verbose', 
+                           'description' => 'Turn on verbose mode');
+
+        $options[] = array('shortOption' => 'w',
+                           'longOption' => 'write-output',
+                           'hasValue' => true,
+                           'requiredValue' => true,
+                           'callback' => 'writeOutput', 
+                           'description' => "Write output in to file. Eg ./cli 'myNamespace\MyProgram' --write-output=\"/home/user/test.log\"");
         
-        $this->defaultOptions[] = array('options' => array('-w', '--write-output'), 
-                                        'callback' => 'writeOutput', 
-                                        'description' => "Write output in to file. Eg ./m-commander 'myNamespace\MyModule' -w /home/user/test.log");
-        
+        return $options;
     }
 }
