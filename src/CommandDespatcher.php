@@ -92,9 +92,19 @@ class CommandDespatcher {
      */
     private function renderAuthor()
     {
-        $verbose = getopt('v', array('verbose'));
+        $show = false;
+        $verbose = getopt('vh', array('verbose', 'help'));
         
-        if(isset($verbose['v']) || isset($verbose['verbose'])) {
+        if(isset($verbose['v']) 
+           || isset($verbose['verbose']) 
+           || isset($verbose['h']) 
+           || isset($verbose['help'])) {
+            
+            $show = true;
+            
+        }
+        
+        if($show === true) {
             $version = file_get_contents(__DIR__ . '/../version.txt');
             $str = "PHP-Console {$version}" . PHP_EOL;
             $str.= "Author: Wojciech Brozyna <https://github.com/200MPH>" . PHP_EOL . PHP_EOL;
@@ -109,6 +119,7 @@ class CommandDespatcher {
      */
     private function isHelpNeeded()
     {
+        // last argument is a program name to execute
         $class = end($this->arguments);
         return !class_exists($class);
     }
@@ -137,7 +148,7 @@ class CommandDespatcher {
      */
     private function execute()
     {
-        
+        print_r($this->arguments);
         $this->renderAuthor();
         $process = $this->cli->findLockedProcess();
         if($process === false) {

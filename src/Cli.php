@@ -10,8 +10,6 @@
 
 namespace phpconsole;
 
-use ReflectionObject;
-
 abstract class Cli {
     
     /**
@@ -295,7 +293,6 @@ abstract class Cli {
     /**
      * Set program options
      * 
-     * @throw RuntimeException Option method not defined
      * @return void
      */
     public function setOptions(): void
@@ -321,6 +318,9 @@ abstract class Cli {
         }
         
         $cliOptions = getopt($short, $longArr);
+        
+        print_r($options);
+        print_r($cliOptions);
         
         foreach($options as $option) {
             if(isset($cliOptions[$option['shortOption']]) || isset($cliOptions[$option['longOption']])) {
@@ -388,6 +388,7 @@ abstract class Cli {
     /**
      * Get program all options, default ones and also from child class.
      * 
+     * @throw RuntimeException Option method not defined
      * @return array
      */
     private function getAllOptions(): array
@@ -498,7 +499,7 @@ abstract class Cli {
         if(empty($this->name) === false) {
             return $this->name;
         } else {
-            $this->reflection = new ReflectionObject($this);
+            $this->reflection = new \ReflectionObject($this);
             $this->name = $this->reflection->getShortName();
             return $this->name;
         }
