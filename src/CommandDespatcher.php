@@ -135,6 +135,7 @@ class CommandDespatcher {
         
         if(class_exists($class) === true) {
             $this->cli = new $class();
+            $this->cli->setArguments($this->arguments);
             $this->execute();
         } else {
             throw new \RuntimeException("Class '{$class}' not found", ErrorCodes::MOD_NOT_FOUND);
@@ -148,7 +149,7 @@ class CommandDespatcher {
      */
     private function execute()
     {
-        print_r($this->arguments);
+        
         $this->renderAuthor();
         $process = $this->cli->findLockedProcess();
         if($process === false) {

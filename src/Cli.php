@@ -89,6 +89,12 @@ abstract class Cli {
     private $reflection;
     
     /**
+     * Arguments
+     * @var array
+     */
+    private $arguments = [];
+    
+    /**
      * Execute command for module
      * Do the job you want to do in this function
      * 
@@ -330,6 +336,37 @@ abstract class Cli {
     }
     
     /**
+     * Get Arguments
+     * 
+     * @return array
+     */
+    public function getArguments(): array 
+    {
+        // remove first element
+        array_shift($this->arguments);
+        
+        // remove last element
+        array_pop($this->arguments);
+        
+        // remove '-' and '--' signs
+        array_walk($this->arguments, function(&$value) {
+            $value = str_replace(['-', '--'], '', $value);
+        });
+        
+        return $this->arguments;
+    }
+    
+    /**
+     * Set arguments
+     * @param array
+     * @return void
+     */
+    public function setArguments(array $arguments): void 
+    {
+        $this->arguments = $arguments;
+    }
+    
+    /**
      * Set verbose
      * 
      * @return void
@@ -388,19 +425,43 @@ abstract class Cli {
     /**
      * Get program all options, default ones and also from child class.
      * 
-     * @throw RuntimeException Option method not defined
+     * @throw RuntimeException
      * @return array
      */
     private function getAllOptions(): array
     {
         
-//        if(method_exists($this, $option['callback']) === true) {
-//            ///execute callable method
-//            $this->{$option['callback']}();
-//        } else {
-//            throw new \RuntimeException("Option method {$option['callback']}() doesn't exists", ErrorCodes::OPT_METH_ERR);
-//        }
-        return array_merge($this->getDefaultOptions(), $this->getOptions());       
+        $options = array_merge($this->getDefaultOptions(), $this->getOptions());
+        
+        foreach ($options as $option) {
+            if(empty($option['shortOption'])) {
+                throw new \RuntimeException("Option key ['shortOption'] not set or empty.", ErrorCodes::OPT_FAIL);
+            }
+            
+            if(empty($option['longOption'])) {
+                throw new \RuntimeException("Option key ['longOption'] not set or empty.", ErrorCodes::OPT_FAIL);
+            }
+            
+            if(isset($option['hasValue']) === false) {
+                throw new \RuntimeException("Option key ['hasValue'] not set.", ErrorCodes::OPT_FAIL);
+            }
+            
+            if(isset($option['requiredValue']) === false) {
+                throw new \RuntimeException("Option key ['requiredValue'] not set or empty.", ErrorCodes::OPT_FAIL);
+            }
+            
+            if(empty($option['callback'])) {
+                throw new \RuntimeException("Option key ['callback'] not set or empty.", ErrorCodes::OPT_FAIL);
+            } elseif(method_exists($this, $option['callback']) === false) {
+                throw new \RuntimeException("Option method {$option['callback']}() doesn't exists", ErrorCodes::OPT_METH_ERR);
+            }
+            
+            if(isset($option['description']) === false) {
+                throw new \RuntimeException("['description'] key not set", ErrorCodes::OPT_FAIL);
+            }
+        }
+
+        return $options;
     }
     
     /**
