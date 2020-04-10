@@ -95,8 +95,8 @@ abstract class Cli {
     private $arguments = [];
     
     /**
-     * Execute command for module
-     * Do the job you want to do in this function
+     * Execute your program.
+     * Do the job you want to do in this function.
      * 
      * @return void
      */
@@ -104,7 +104,19 @@ abstract class Cli {
     
     /**
      * Get program options.
-     * @return array If no options return an empty array.
+     * If no options in your program then return an empty array.
+     * 
+     * Return a list (multi dimensional array) of options.
+     * Each option is an array and must contain following keys:
+     * - shortOption - short option name
+     * - longOption - long option name
+     * - description - option description
+     * - hasValue - TRUE if option may contain a value (optional value), otherwise FALSE 
+     * - requiredValue - TRUE if option required value, otherwise FALSE 
+     * - isMandatory - TRUE if option and value must be provided, otherwise FALSE
+     * - callback - The method name which process this option. Method must have protected access. 
+     * 
+     * @return array 
      */
     abstract public function getOptions(): array;
     
@@ -112,42 +124,39 @@ abstract class Cli {
     * Render coloured output
     * 
     * @param string $string String to be coloured
-    * @param string $foreground_color [optional] Foreground colour code
-    * @param string $background_color [optional] Background colour code
+    * @param string $foregroundColor [optional] Foreground colour code
+    * @param string $backgroundColor [optional] Background colour code
     * @param bool $newLine [optional] Set true if you wish attach new line code
     * @param bool $bold [optional] Set font bold
      * 
      * @return void
     */
     static public function render(string $string, 
-                                  string $foreground_color = null, 
-                                  string $background_color = null, 
+                                  string $foregroundColor = null, 
+                                  string $backgroundColor = null, 
                                   bool $newLine = false, 
                                   bool $bold = false): void
     {
-        $bolder = 0;
-        $colored_string = "";
+        $bolder = $bold === true ? "\033[1m" : '';
+        $coloredString = "";
 
         // Check if given foreground color found
-        if (isset($foreground_color)) {
-            if ($bold === true) {
-                $bolder = 1;
-            }
-            $colored_string .= "\033[" . $bolder . $foreground_color . "m";
+        if (isset($foregroundColor)) {
+            $coloredString .= "\033[" . $foregroundColor . "m";
         }
         
         // Check if given background color found
-        if (isset($background_color)) {
-            $colored_string .= "\033[" . $background_color . "m";
+        if (isset($backgroundColor)) {
+            $coloredString .= "\033[" . $backgroundColor . "m";
         }
 
         // Add string and close coloring
-        $colored_string .= $string . "\033[0m";
+        $coloredString .= $bolder . $string . "\033[0m";
 
         if ($newLine === true) {
-            print($colored_string . PHP_EOL);
+            print($coloredString . PHP_EOL);
         } else {
-            print $colored_string;
+            print $coloredString;
         }
     }
 
@@ -292,7 +301,8 @@ abstract class Cli {
         }
         
         if($lock['LOCK'] === true) {    
-            $this->successOutput("Process {$lock['PID']} unlocked (Locked at {$lock['DATE']})" . PHP_EOL);
+            $this->successOutput("Process {$lock['PID']} unlocked @ " . date('Y-m-d H:i:s') . PHP_EOL);
+            $this->successOutput("Locked at {$lock['DATE']})" . PHP_EOL);
         }
     }
     
@@ -306,25 +316,9 @@ abstract class Cli {
     {
         
         $options = $this->getAllOptions();
-        $short = '';
-        $longArr = [];
-        
-        foreach($options as $option) {
-            $short .= $option['shortOption'];
-            $long = $option['longOption'];
-            if($option['hasValue'] === true && $option['requiredValue'] === true) {
-                // required value
-                $short .= ':';
-                $long .= ':';
-            } elseif($option['hasValue'] === true) {
-                // optional value
-                $short .= '::';
-                $long .= ':';
-            }
-            $longArr[] = $long;
-        }
-        
-        $cliOptions = getopt($short, $longArr);
+        $shortOptions = $this->getShortOptions();
+        $longOptions = $this->getLongOptions();        
+        $cliOptions = getopt($shortOptions, $longOptions);
         
         foreach($options as $option) {
             
@@ -469,30 +463,6 @@ abstract class Cli {
         $this->location = $location;
         
         return $this;
-    }
-    
-    /**
-     * Render all running process
-     */
-    protected function renderProcesList()
-    {
-        
-        $this->verbose = true;
-        $files = $this->getProcessFiles();
-        foreach($files as $file) {
-            $process = $this->parseProcessFile($file);
-            
-            foreach($process as $key => $value) {
-                $this->output($key . ":\t");
-                $this->output($value . PHP_EOL);
-            }
-            
-        }
-        
-        if(count($files) === 0) {
-            $this->output('No running process' . PHP_EOL);
-        }
-        
     }
     
     /**
@@ -642,6 +612,57 @@ abstract class Cli {
     }
     
     /**
+     * Get short options
+     * 
+     * @return string
+     */
+    private function getShortOptions()
+    {
+        
+        $short = '';
+        $options = $this->getAllOptions();
+        
+        foreach($options as $option) {
+            $short .= $option['shortOption'];
+            
+            if($option['hasValue'] === true && $option['requiredValue'] === true) {
+                // required value
+                $short .= ':';
+            } elseif($option['hasValue'] === true) {
+                // optional value
+                $short .= '::';
+            }
+        }
+        
+        return $short;        
+    }
+    
+    /**
+     * Get long options
+     * 
+     * @return array
+     */
+    private function getLongOptions()
+    {
+        $longArr = [];
+        $options = $this->getAllOptions();
+        
+        foreach($options as $option) {
+            $long = $option['longOption'];
+            if($option['hasValue'] === true && $option['requiredValue'] === true) {
+                // required value
+                $long .= ':';
+            } elseif($option['hasValue'] === true) {
+                // optional value
+                $long .= ':';
+            }
+            $longArr[] = $long;
+        }
+        
+        return $longArr;
+    }
+    
+    /**
      * Send process lock notification
      * 
      * @return void
@@ -698,14 +719,6 @@ abstract class Cli {
                            'isMandatory' => false,
                            'callback' => 'lock', 
                            'description' => 'Lock process. Will not let you run another instance of this same program until current is finished.');
-        
-        $options[] = array('shortOption' => 'p',
-                           'longOption' => 'list',
-                           'hasValue' => false,
-                           'requiredValue' => false,
-                           'isMandatory' => false,
-                           'callback' => 'renderProcesList', 
-                           'description' => 'Get all running process');
         
         $options[] = array('shortOption' => 's',
                            'longOption' => 'subject',

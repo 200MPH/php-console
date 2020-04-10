@@ -161,8 +161,8 @@ class CommandDespatcher {
             $this->cli->deleteProcessFile();
         } else {
             $this->cli->outputWarning("Process {$process['PID']} locked at {$process['DATE']}" . PHP_EOL);
-            $this->cli->showHelpMsg();
             $this->cli->sendLockNotification();
+            $this->cli->showHelpMsg();
         }
         
     }

@@ -24,6 +24,9 @@ class SimpleCli extends Cli {
         $this->outputSuccess('Hurra! This is my first CLI module' . PHP_EOL);
         $this->outputWarning('Warning have yellow colour' . PHP_EOL);
         $this->outputError('Error have red colour'  .PHP_EOL);
+        Cli::render('Bold text', null, null, true, true);
+        Cli::render('More colors', \phpconsole\CliColors::FG_LIGHT_GREEN, \phpconsole\CliColors::BG_BLUE, true);
+        Cli::render('More colors', \phpconsole\CliColors::FG_RED, \phpconsole\CliColors::BG_WHITE, true);
     }
 
     /**

@@ -4,11 +4,10 @@
 /** 
  * This script allow only local users to execute programs via command line
  * 
- * @example ./vendor/bin/cli -h This will display help page
- * @example ./vendor/bin/cli 'namespace\to\my\module' 
- * @example ./vendor/bin/cli 'namespace\to\my\module' -h|--help This will display particular module help page
- * @example ./vendor/bin/cli 'namespace\to\my\module' -v|--verbose Execute program with verbose mode
- * @example ./vendor/bin/cli 'namespace\to\my\module' --your-option="your value" Execute program with your option
+ * @example ./vendor/bin/php-console 'namespace\to\my\module' 
+ * @example ./vendor/bin/php-console -h|--help 'namespace\to\my\module'
+ * @example ./vendor/bin/php-console -v|--verbose 'namespace\to\my\module'
+ * @example ./vendor/bin/php-console --your-option="your value" 'namespace\to\my\module'
  * 
  * @author Wojciech Brozyna <wojciech.brozyna@gmail.com>
  * @license https://github.com/200MPH/phpconsole/LICENSE

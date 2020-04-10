@@ -21,17 +21,7 @@ class CliColors {
    /**
     * @var string
     */
-	const FG_DARK_GREY = ';30';
-   
-   /**
-    * @var string
-    */
-	const FG_BLUE = ';34';
-   
-   /**
-    * @var string
-    */
-	const FG_LIGHT_BLUE = ';94';
+	const FG_RED = ';31';
    
    /**
     * @var string
@@ -41,48 +31,23 @@ class CliColors {
    /**
     * @var string
     */
-	const FG_LIGHT_GREEN = ';32';
+	const FG_YELLOW = ';33';
+   
+   /**
+    * @var string
+    */
+	const FG_BLUE = ';34';
+   
+   /**
+    * @var string
+    */
+	const FG_MAGENTA = ';35';
    
    /**
     * @var string
     */
 	const FG_CYAN = ';36';
-   
-   /**
-    * @var string
-    */
-	const FG_LIGHT_CYAN = ';36';
-   
-   /**
-    * @var string
-    */
-	const FG_RED = ';31';
-   
-   /**
-    * @var string
-    */
-	const FG_LIGHT_RED = ';31';
-   
-   /**
-    * @var string
-    */
-	const FG_PURPLE = ';35';
-   
-   /**
-    * @var string
-    */
-	const FG_LIGHT_PURPLE = ';35';
-   
-   /**
-    * @var string
-    */
-	const FG_BROWN = ';33';
-   
-   /**
-    * @var string
-    */
-	const FG_YELLOW = ';33';
-   
+      
    /**
     * @var string
     */
@@ -91,7 +56,42 @@ class CliColors {
    /**
     * @var string
     */
-	const FG_WHITE = ';37';
+	const FG_DARK_GREY = ';90';
+   
+   /**
+    * @var string
+    */
+	const FG_LIGHT_RED = ';91';
+   
+   /**
+    * @var string
+    */
+	const FG_LIGHT_GREEN = ';92';
+   
+   /**
+    * @var string
+    */
+	const FG_LIGHT_YELLOW = ';93';
+   
+   /**
+    * @var string
+    */
+	const FG_LIGHT_BLUE = ';94';
+      
+   /**
+    * @var string
+    */
+	const FG_LIGHT_MAGENTA = ';95';
+   
+   /**
+    * @var string
+    */
+	const FG_LIGHT_CYAN = ';96';
+   
+   /**
+    * @var string
+    */
+	const FG_WHITE = ';97';
    
    /**
     * @var string
@@ -132,4 +132,44 @@ class CliColors {
     * @var string
     */
 	const BG_LIGHT_GRAY = '47';	
+   
+   /**
+    * @var string
+    */
+   const BG_DARK_GREY = '100';
+   
+   /**
+    * @var string
+    */
+   const BG_LIGHT_RED = '101';
+   
+   /**
+    * @var string
+    */
+   const BG_LIGHT_GREEN = '102';
+   
+   /**
+    * @var string
+    */
+   const BG_LIGHT_YELLOW = '103';
+   
+   /**
+    * @var string
+    */
+   const BG_LIGHT_BLUE = '104';
+   
+   /**
+    * @var string
+    */
+   const BG_LIGHT_MAGENTA = '105';
+   
+   /**
+    * @var string
+    */
+   const BG_LIGHT_CYAN = '106';
+   
+   /**
+    * @var string
+    */
+   const BG_WHITE = '107';
 }
