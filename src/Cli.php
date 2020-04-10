@@ -300,6 +300,7 @@ abstract class Cli {
      * Set program options
      * 
      * @return void
+     * @throw RuntimeException
      */
     public function setOptions(): void
     {
@@ -325,13 +326,35 @@ abstract class Cli {
         
         $cliOptions = getopt($short, $longArr);
         
-        print_r($options);
-        print_r($cliOptions);
-        
         foreach($options as $option) {
-            if(isset($cliOptions[$option['shortOption']]) || isset($cliOptions[$option['longOption']])) {
-                $this->{$option['callback']}();
+            
+            $value = false;
+            $isset = false;
+            
+            if(isset($cliOptions[$option['shortOption']])) {
+                $value = $cliOptions[$option['shortOption']];
+                $isset = true;
+            } else if(isset($cliOptions[$option['longOption']])) {
+                $value = $cliOptions[$option['longOption']];
+                $isset = true;
+            } 
+            
+            // check wether option must be set
+            if($option['isMandatory'] === true && $value === false) {
+                throw new \RuntimeException("Option -{$option['shortOption']}|--{$option['longOption']} and value must be set.", ErrorCodes::OPT_FAIL);
             }
+                
+            // check whether option require a value
+            if($isset === true) {
+           
+                if($value === false && $option['hasValue'] === true && $option['requiredValue'] === true) {
+                    throw new \RuntimeException("Option -{$option['shortOption']}|--{$option['longOption']} require a value.", ErrorCodes::OPT_FAIL);
+                }
+                
+                // execute
+                $this->{$option['callback']}($value);
+            }
+            
         }
     }
     
@@ -379,23 +402,20 @@ abstract class Cli {
     /**
      * Write output into file
      * 
+     * @param string $file Absolute path
      * @return void
      */
-    protected function writeOutput()
+    protected function writeOutput(string $file): void
     {
-        foreach($this->args as $key => $value) {
-            
-            if($value === '-w' || $value === '--write-output') {
-                
-                $this->isPathNameProvided($key);
-                    
-                $this->isFileWritable($key);
-                
-                break;
-                
-            }
-            
+        
+        $this->output('Write output to: ');
+        $this->outputWarning($file . PHP_EOL);
+        
+        if(empty($file)) {
+            throw new \RuntimeException('You have to specify path to the file Eg. --write="/path/to/file"', ErrorCodes::OPT_WRITE_NO_FILE);
         }
+        
+        $this->writeOutputFile = $file;
         
     }
     
@@ -410,16 +430,90 @@ abstract class Cli {
     }
     
     /**
-     * Save output in to file
+     * Set email
      * 
-     * @param string $string
-     * @return void
+     * @param string $email
+     * @return Cli
      */
-    final protected function saveOutput($string): void
+    protected function setEmail(string $email): Cli 
     {
-        if($this->writeOutputFile !== false) {       
-            file_put_contents($this->writeOutputFile, $string, FILE_APPEND);
+        $this->output('Email set to:' . $email . PHP_EOL);
+        $this->email = $email;
+        
+        return $this;
+    }
+    
+    /**
+     * Set subject
+     * 
+     * @param string $subject
+     * @return Cli
+     */
+    protected function setSubject(string $subject): Cli 
+    {
+        $this->output('Subject set to:' . $subject . PHP_EOL);
+        $this->emailSubject = $subject;
+        
+        return $this;
+    }
+    
+    /**
+     * Set temporary location
+     * 
+     * @param string $location
+     * @return Cli
+     */
+    protected function setTmpLocation(string $location): Cli 
+    {
+        $this->output('Temporary location set to:' . $location . PHP_EOL);
+        $this->location = $location;
+        
+        return $this;
+    }
+    
+    /**
+     * Render all running process
+     */
+    protected function renderProcesList()
+    {
+        
+        $this->verbose = true;
+        $files = $this->getProcessFiles();
+        foreach($files as $file) {
+            $process = $this->parseProcessFile($file);
+            
+            foreach($process as $key => $value) {
+                $this->output($key . ":\t");
+                $this->output($value . PHP_EOL);
+            }
+            
         }
+        
+        if(count($files) === 0) {
+            $this->output('No running process' . PHP_EOL);
+        }
+        
+    }
+    
+    /**
+     * Send email notification
+     * 
+     * @param const $type Notify::SUCCESS | Notify::ERROR | Notify::INFO
+     * @param string $message Message to be send. HTML code accepted
+     * 
+     * @return bool
+     */
+    protected function send($type, $message): bool
+    {
+        if(empty($this->email) === false) {       
+            $notify = new Notify();
+            $notify->setEmail($this->email);
+            $notify->setSubject($this->emailSubject);
+            $notify->setMessage($message);
+            return $notify->send($type);
+        }
+
+        return false;        
     }
     
     /**
@@ -431,9 +525,19 @@ abstract class Cli {
     private function getAllOptions(): array
     {
         
+        $checks = [];
         $options = array_merge($this->getDefaultOptions(), $this->getOptions());
         
         foreach ($options as $option) {
+            
+            if(in_array($option['shortOption'], $checks) === true) {
+                throw new \RuntimeException("Short option {$option['shortOption']} reserverd. Use another name.", ErrorCodes::OPT_FAIL);
+            }
+            
+            if(in_array($option['longOption'], $checks) === true) {
+                throw new \RuntimeException("Long option {$option['longOption']} reserverd. Use another name.", ErrorCodes::OPT_FAIL);
+            }
+            
             if(empty($option['shortOption'])) {
                 throw new \RuntimeException("Option key ['shortOption'] not set or empty.", ErrorCodes::OPT_FAIL);
             }
@@ -480,53 +584,6 @@ abstract class Cli {
     }
     
     /**
-     * Check if path is provided for -w|--write-output option
-     * 
-     * @var int $optionLocation Expected -w option location in ARGS array.
-     * In another word, ARGS array key where -w|--write-output option occured
-     * 
-     * @throw RuntimeException
-     */
-    final private function isPathNameProvided($optionLocation)
-    {
-        
-        // next to argument should be file name
-        $pathLocation = $optionLocation + 1;
-       
-        if(isset( $this->args[$pathLocation] ) === false) {
-
-            throw new \RuntimeException('You have to specify path to the file for -w|--write-output option', CliCodes::OPT_WRITE_NO_FILE);
-
-        }
-        
-    }
-    
-    /**
-     * Check if file is writable
-     * 
-     * @var int $optionLocation Expected -w option location in ARGS array.
-     * In another word, ARGS array key where -w|--write-output option occured
-     * 
-     * @throw RuntimeException
-     */
-    final private function isFileWritable($optionLocation)
-    {
-        
-        // next to argument should be file name
-        $pathLocation = $optionLocation + 1;
-        
-        $this->writeOutputFile = $this->args[$pathLocation];
-
-        if(@file_put_contents($this->writeOutputFile, '') === false) {
-
-            // looks like we can't create the file
-            throw new \RuntimeException('File is not writable. Check filename and permissions', CliCodes::OPT_FILE_PER_ERR);
-
-        }
-        
-    }
-    
-    /**
      * Parse file process string
      * 
      * @param string $file
@@ -567,6 +624,24 @@ abstract class Cli {
     }
     
     /**
+     * Save output in to file
+     * 
+     * @param string $string
+     * @return void
+     * @throw RuntimeException
+     */
+    private function saveOutput($string): void
+    {
+        if($this->writeOutputFile !== false) {       
+            $state = file_put_contents($this->writeOutputFile, $string, FILE_APPEND);
+            
+            if($state === false) {
+                throw \RuntimeException("File {$this->writeOutputFile} is not writable", ErrorCodes::OPT_FILE_PER_ERR);
+            }
+        }
+    }
+    
+    /**
      * Send process lock notification
      * 
      * @return void
@@ -593,27 +668,6 @@ abstract class Cli {
     }
     
     /**
-     * Send email notification
-     * 
-     * @param const $type Notify::SUCCESS | Notify::ERROR | Notify::INFO
-     * @param string $message Message to be send. HTML code accepted
-     * 
-     * @return bool
-     */
-    protected function send($type, $message): bool
-    {
-        if(empty($this->email) === false) {       
-            $notify = new Notify();
-            $notify->setEmail($this->email);
-            $notify->setSubject($this->emailSubject);
-            $notify->setMessage($message);
-            return $notify->send($type);
-        }
-
-        return false;        
-    }
-    
-    /**
      * Get program default options
      * 
      * @return array
@@ -621,11 +675,19 @@ abstract class Cli {
     private function getDefaultOptions(): array
     {
         
-        $options = [];
+        $options[] = array('shortOption' => 'e',
+                           'longOption' => 'email',
+                           'hasValue' => true,
+                           'requiredValue' => true,
+                           'isMandatory' => false,
+                           'callback' => 'setEmail', 
+                           'description' => 'If you wish to get notification about locked process set this option.');
+        
         $options[] = array('shortOption' => 'h',
                            'longOption' => 'help',
                            'hasValue' => false,
                            'requiredValue' => false,
+                           'isMandatory' => false,
                            'callback' => 'showHelpMsg', 
                            'description' => 'Display this page');
         
@@ -633,22 +695,49 @@ abstract class Cli {
                            'longOption' => 'lock',
                            'hasValue' => false,
                            'requiredValue' => false,
+                           'isMandatory' => false,
                            'callback' => 'lock', 
-                           'description' => 'Lock module process. Will not let you run another instance of this same module until current is finished. However you can execute script for another module');
+                           'description' => 'Lock process. Will not let you run another instance of this same program until current is finished.');
+        
+        $options[] = array('shortOption' => 'p',
+                           'longOption' => 'list',
+                           'hasValue' => false,
+                           'requiredValue' => false,
+                           'isMandatory' => false,
+                           'callback' => 'renderProcesList', 
+                           'description' => 'Get all running process');
+        
+        $options[] = array('shortOption' => 's',
+                           'longOption' => 'subject',
+                           'hasValue' => true,
+                           'requiredValue' => true,
+                           'isMandatory' => false,
+                           'callback' => 'setSubject', 
+                           'description' => 'Set notification subject. Works only with -e|--email option.');
+        
+        $options[] = array('shortOption' => 't',
+                           'longOption' => 'tmp-location',
+                           'hasValue' => true,
+                           'requiredValue' => true,
+                           'isMandatory' => false,
+                           'callback' => 'setTmpLocation', 
+                           'description' => 'Set location for temporary files. Default: ' . $this->location);
         
         $options[] = array('shortOption' => 'v',
                            'longOption' => 'verbose',
                            'hasValue' => false,
                            'requiredValue' => false,
+                           'isMandatory' => false,
                            'callback' => 'verbose', 
                            'description' => 'Turn on verbose mode');
 
         $options[] = array('shortOption' => 'w',
-                           'longOption' => 'write-output',
+                           'longOption' => 'write',
                            'hasValue' => true,
                            'requiredValue' => true,
+                           'isMandatory' => false,
                            'callback' => 'writeOutput', 
-                           'description' => "Write output in to file. Eg ./cli 'myNamespace\MyProgram' --write-output=\"/home/user/test.log\"");
+                           'description' => "Write output in to file. Eg. --write-output=\"/path/to/file\"");
         
         return $options;
     }

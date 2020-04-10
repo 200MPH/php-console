@@ -78,7 +78,7 @@ class CommandDespatcher {
      */
     public function displayHelp()
     {
-        $this->renderAuthor();
+        $this->renderAuthor(true);
         Cli::render("Please provide class name that you wish to process with full namespace.", 
                     CliColors::FG_BLACK, CliColors::BG_YELLOW, true);
         Cli::render("Example: ./vendor/bin/php-console --help 'namespace\\to\\my\\program'", 
@@ -88,27 +88,28 @@ class CommandDespatcher {
     /**
      * Get author
      * 
+     * @param bool $force [optional] Force render
      * @return string
      */
-    private function renderAuthor()
+    private function renderAuthor(bool $force = false)
     {
         $show = false;
         $verbose = getopt('vh', array('verbose', 'help'));
         
-        if(isset($verbose['v']) 
+        if($force === true 
+           || isset($verbose['v']) 
            || isset($verbose['verbose']) 
            || isset($verbose['h']) 
            || isset($verbose['help'])) {
             
             $show = true;
-            
         }
         
         if($show === true) {
             $version = file_get_contents(__DIR__ . '/../version.txt');
             $str = "PHP-Console {$version}" . PHP_EOL;
             $str.= "Author: Wojciech Brozyna <https://github.com/200MPH>" . PHP_EOL . PHP_EOL;
-            Cli::render($str, CliColors::FG_LIGHT_BLUE);
+            Cli::render($str, CliColors::FG_LIGHT_BLUE);   
         }
     }
     
