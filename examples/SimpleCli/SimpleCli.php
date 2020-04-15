@@ -9,6 +9,7 @@
 namespace examples\phpconsole\SimpleCli;
 
 use phpconsole\Cli;
+use phpconsole\CliColors;
 
 class SimpleCli extends Cli {
     
@@ -25,8 +26,8 @@ class SimpleCli extends Cli {
         $this->outputWarning('Warning have yellow colour' . PHP_EOL);
         $this->outputError('Error have red colour'  .PHP_EOL);
         Cli::render('Bold text', null, null, true, true);
-        Cli::render('More colors', \phpconsole\CliColors::FG_LIGHT_GREEN, \phpconsole\CliColors::BG_BLUE, true);
-        Cli::render('More colors', \phpconsole\CliColors::FG_RED, \phpconsole\CliColors::BG_WHITE, true);
+        Cli::render('More colors', CliColors::FG_LIGHT_GREEN, CliColors::BG_BLUE, true);
+        Cli::render('More colors', CliColors::FG_RED, CliColors::BG_WHITE, true);
     }
 
     /**

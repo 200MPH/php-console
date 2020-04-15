@@ -114,7 +114,7 @@ abstract class Cli {
      * - hasValue - TRUE if option may contain a value (optional value), otherwise FALSE 
      * - requiredValue - TRUE if option required value, otherwise FALSE 
      * - isMandatory - TRUE if option and value must be provided, otherwise FALSE
-     * - callback - The method name which process this option. Method must have protected access. 
+     * - callback - The method name which process this option. Method must have public or protected access. 
      * 
      * @return array 
      */
@@ -166,7 +166,7 @@ abstract class Cli {
      * @param string Text to display
      * @return void
      */
-    public function output($string): void
+    public function output(string $string): void
     {
         if($this->verbose === true) {
             print($string);       
@@ -182,7 +182,7 @@ abstract class Cli {
      * @param string Text to display
      * @return void
      */
-    public function outputSuccess($string): void
+    public function outputSuccess(string $string): void
     {
         if($this->verbose === true) {   
             Cli::render($string, CliColors::FG_GREEN, null);
@@ -198,7 +198,7 @@ abstract class Cli {
      * @param string Text to display
      * @return void
      */
-    public function outputError($string): void
+    public function outputError(string $string): void
     {
         if($this->verbose === true) {
             Cli::render($string, CliColors::FG_RED, null);
@@ -214,7 +214,7 @@ abstract class Cli {
      * @param string Text to display
      * @return void
      */
-    public function outputWarning($string): void
+    public function outputWarning(string $string): void
     {
         if($this->verbose === true) {
             Cli::render($string, CliColors::FG_YELLOW, null);
@@ -384,6 +384,45 @@ abstract class Cli {
     }
     
     /**
+     * Parse file process string
+     * 
+     * @param string $file
+     * @return array
+     */
+    public function parseProcessFile(string $file): array
+    {
+        if(file_exists($file) === false) {
+            return ['PID' => 0, 
+                    'DATE' => '', 
+                    'NAME' => '', 
+                    'DESC' => '', 
+                    'FILE' => '', 
+                    'AVG_OP_TIME' => $this->avgOpTime, 
+                    'LOCK' => false];
+        }
+        
+        $json = file_get_contents($file);
+        $arr = json_decode($json, true);    
+                
+        return $arr;   
+    }
+    
+    /**
+     * Get process files.
+     * 
+     * @return array
+     */
+    public function getProcessFiles(): array
+    {
+        $searchPattern = $this->location;
+        $searchPattern.= $this->getName();
+        $searchPattern.= '*.*.*.lock';
+        $files = glob($searchPattern);
+        
+        return is_array($files) ? $files : [];
+    }
+    
+    /**
      * Set verbose
      * 
      * @return void
@@ -468,12 +507,12 @@ abstract class Cli {
     /**
      * Send email notification
      * 
-     * @param const $type Notify::SUCCESS | Notify::ERROR | Notify::INFO
+     * @param int $type Notification::SUCCESS | Notification::ERROR | Notification::INFO
      * @param string $message Message to be send. HTML code accepted
      * 
      * @return bool
      */
-    protected function send($type, $message): bool
+    protected function send(int $type, string $message): bool
     {
         if(empty($this->email) === false) {       
             $notify = new Notify();
@@ -494,6 +533,10 @@ abstract class Cli {
      */
     private function getAllOptions(): array
     {
+        
+        if(is_array($this->getOptions()) === false) {
+            throw new \RuntimeException("Method getOptions() must return an array.", ErrorCodes::OPT_METH_ERR);
+        }
         
         $checks = [];
         $options = array_merge($this->getDefaultOptions(), $this->getOptions());
@@ -539,45 +582,6 @@ abstract class Cli {
     }
     
     /**
-     * Get process files.
-     * 
-     * @return array
-     */
-    private function getProcessFiles(): array
-    {
-        $searchPattern = $this->location;
-        $searchPattern.= $this->getName();
-        $searchPattern.= '.*.*.lock';
-        $files = glob($searchPattern);
-        
-        return is_array($files) ? $files : [];
-    }
-    
-    /**
-     * Parse file process string
-     * 
-     * @param string $file
-     * @return array
-     */
-    private function parseProcessFile(string $file): array
-    {
-        if(file_exists($file) === false) {
-            return ['PID' => 0, 
-                    'DATE' => '', 
-                    'NAME' => '', 
-                    'DESC' => '', 
-                    'FILE' => '', 
-                    'AVG_OP_TIME' => $this->avgOpTime, 
-                    'LOCK' => false];
-        }
-        
-        $json = file_get_contents($file);
-        $arr = json_decode($json, true);    
-                
-        return $arr;   
-    }
-    
-    /**
      * Get program name
      * 
      * @return string
@@ -600,7 +604,7 @@ abstract class Cli {
      * @return void
      * @throw RuntimeException
      */
-    private function saveOutput($string): void
+    private function saveOutput(string $string): void
     {
         if($this->writeOutputFile !== false) {       
             $state = file_put_contents($this->writeOutputFile, $string, FILE_APPEND);
@@ -669,7 +673,6 @@ abstract class Cli {
      */
     public function sendLockNotification(): void
     {
-        
         $lockData = $this->parseProcessFile($this->processFile);    
         $this->notificationSubject = "Process #{$lockData['PID']} locked!";
 
@@ -685,7 +688,6 @@ abstract class Cli {
         $msg .= "\t 2. Remove lock file {$this->processFile} (note that file name is various)\n";
 
         $this->send(Notify::ERROR, $msg);
-        
     }
     
     /**

@@ -6,21 +6,19 @@ use phpconsole\Cli;
 use phpconsole\ErrorCodes;
 
 class ModuleTest extends Cli {
-        
-    public function execute() 
-    {
-        $this->warningOutput('Testing complete' . PHP_EOL);   
-    }
+      
+    /**
+     * @var string
+     */
+    public $name = 'UnitTest';
     
-    protected function loadOptions() 
-    {
-        parent::loadOptions();
-        $this->defaultOptions[] = array('options' => array('-t', '--test'), 
-                                        'callback' => 'testMe', 
-                                        'description' => 'Test me');   
-        $this->defaultOptions[] = array('options' => array('-n', '--not-exists'), 
-                                        'callback' => 'notExists', 
-                                        'description' => 'Test for non existing method');
+    /**
+     * @var string
+     */
+    public $description = 'Unit test description';
+    
+    public function run(): void {
+        sleep(2);
     }
     
     protected function testMe() 
@@ -28,5 +26,34 @@ class ModuleTest extends Cli {
         //throw any exception to proof that this functionality works
         throw new \RuntimeException('Options works', ErrorCodes::OPT_FAIL);   
     }
+
+    protected function quit()
+    {
+        exit();
+    }
     
+    public function getOptions(): array
+    {
+    
+        $options = [];
+        $options[] = array('shortOption' => 'x',
+                           'longOption' => 'testing',
+                           'hasValue' => false,
+                           'requiredValue' => false,
+                           'isMandatory' => false,
+                           'callback' => 'testMe', 
+                           'description' => 'Test option');
+        
+        $options[] = array('shortOption' => 'q',
+                           'longOption' => 'exit',
+                           'hasValue' => false,
+                           'requiredValue' => false,
+                           'isMandatory' => false,
+                           'callback' => 'quit', 
+                           'description' => 'Exit process and leave lock file on storage');
+        
+        return $options;
+        
+    }
+
 }

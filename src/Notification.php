@@ -1,7 +1,9 @@
 <?php
 
 /*
- * Notification
+ * Notification.
+ * Note. You must have a local SMTP server which listening on port 25 to get this work,
+ * as you would have to for send() function.
  * 
  * @authot Wojciech Brozyna <wojciech.brozyna@gmail.com>
  */
@@ -38,48 +40,48 @@ class Notification {
     private $message;
     
     /**
+     * Message header
+     * 
+     * @var string
+     */
+    private $header;
+    
+    /**
      * Set email
      * 
      * @param string $email
+     * @return Notification
      */
     public function setEmail($email)
     {
-        
-        $this->email = $email;
-        
+        $this->email = $email;   
+        return $this;
     }
     
     /**
      * Set subject
      * 
      * @param string $subject
+     * @return Notification
      */
     public function setSubject($subject) 
     {
-        
         $this->subject = $subject;
-        
+        return $this;
     }
     
     /**
      * Set message
      * 
      * @param string $message
+     * @return Notification
      */
     public function setMessage($message)
     {
-        
         $this->message = $message;
-        
+        return $this;
     }
-    
-    /**
-     * HTML message
-     * 
-     * @var string
-     */
-    private $html;
-    
+        
     /**
      * Send notification
      * 
@@ -88,27 +90,16 @@ class Notification {
      */
     public function send($type)
     {
-        
         switch($type) {
-            
             case Notify::SUCCESS:
-                
                 return $this->sendSuccess();
-                
             case Notify::ERROR:
-                
                 return $this->sendError();
-                
             case Notify::INFO:
-                
                 return $this->sendInfo();
-                
             default:
-                
                 return false;
-            
-        }
-        
+        }   
     }
     
     /**
@@ -118,11 +109,8 @@ class Notification {
      */
     private function sendSuccess()
     {
-        
-        $this->html = "<div style=\" width: 100%; padding: 15px; background: #00cc00; color: yellow;\">SUCCESS</div>";
-                
+        $this->header = "<div style=\" width: 100%; padding: 15px; background: #00cc00; color: yellow;\">SUCCESS</div>";           
         return $this->__send(); 
-        
     }
     
     /**
@@ -132,11 +120,8 @@ class Notification {
      */
     private function sendError()
     {
-        
-        $this->html = "<div style=\" width: 100%; padding: 15px; background: #ff0000; color: white;\">ERROR</div>";
-                
+        $this->header = "<div style=\" width: 100%; padding: 15px; background: #ff0000; color: white;\">ERROR</div>";           
         return $this->__send(); 
-        
     }
     
     /**
@@ -146,30 +131,25 @@ class Notification {
      */
     private function sendInfo()
     {
-        
-        $this->html = "<div style=\" width: 100%; padding: 15px; background: ##0099ff; color: white;\">INFO</div>";
-                
+        $this->header = "<div style=\" width: 100%; padding: 15px; background: ##0099ff; color: white;\">INFO</div>";
         return $this->__send(); 
-        
     }
     
     /**
-     * Send email to receipient
+     * Send email to recipient
      * 
      * @return bool
      */
     private function __send()
     {
-      
-        $message = $this->html . '<br>' . nl2br($this->message);
+        $message = $this->header . '<br>' . nl2br($this->message);
+        $transport = (new \Swift_SmtpTransport('localhost', 25));
+        $mailer = new \Swift_Mailer($transport);
+        $message = new \Swift_Message($this->subject);
+        $message->setBody($message);
+        $message->setTo([$this->email]);
         
-        $mail = \app\Core\MailComposer\MailComposerStrategy::create();
-        $mail->addRecipient($this->email);
-        $mail->setSubject($this->subject);
-        $mail->setContent($message);
-        
-        return $mail->send() > 0 ? true : false;
-        
+        return $mailer->send($message) > 0 ? true : false;
     }
     
 }

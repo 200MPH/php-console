@@ -2,24 +2,31 @@
 
 namespace test;
 
-use mcommander\Cli;
-use mcommander\CliCodes;
+use phpconsole\CommandDespatcher;
+use PHPUnit\Framework\TestCase;
 
-class TestCli extends \PHPUnit_Framework_TestCase {
+class CliTest extends TestCase {
     
     /**
-     * Cli object
+     * CLI
      * 
-     * @var Cli
+     * @var CommandDespatcher
      */
     private $cli;
     
-    public function setUp() {
+    public function setUp(): void {
+        $this->cli = new CommandDespatcher();
+    }
+    
+    public function tearDown(): void
+    {
+        $files = glob('UnitTest.*.*.lock');
         
-        $this->cli = new Cli();
-        
-        $this->cli->testing = true;
-        
+        if(is_array($files)) {
+            foreach($files as $file) {
+                unlink($file);
+            }
+        }
     }
     
     /**
@@ -44,25 +51,12 @@ class TestCli extends \PHPUnit_Framework_TestCase {
        
     }
 
-    /**
-     * Testing test :)
-     */
-    public function testTest() 
-    {
-        
-        $foo = true;
-        $this->assertTrue($foo);
-        
-    }
-    
     public function helpArgProvider()
     {
-        
         return array(
           array('-h'),
           array('--help')
-        );
-        
+        );   
     }
     
     /**
@@ -70,89 +64,34 @@ class TestCli extends \PHPUnit_Framework_TestCase {
      * 
      * @param string $arg
      */
-    public function testIsHelpNeeded_True($arg)
+    public function testIsHelpNeeded($arg)
     {
+        $this->cli->despatch(array($arg, ''));   
+        $state1 = $this->invokeMethod($this->cli, 'isHelpNeeded');
+        $this->assertTrue($state1);
         
-        $this->cli->despatch(2, array('this/path/is/arg/as/wel', $arg));
+        $this->cli->despatch(array($arg, 'test\ModuleTest'));   
+        $state2 = $this->invokeMethod($this->cli, 'isHelpNeeded');
+        $this->assertTrue($state2);
         
-        $status = $this->invokeMethod($this->cli, 'isHelpNeeded');
-
-        $this->assertTrue($status);
+        $this->cli->despatch(array('test\ModuleTest'));   
+        $state3 = $this->invokeMethod($this->cli, 'isHelpNeeded');
+        $this->assertFalse($state3);
         
     }
     
-    /**
-     * @dataProvider helpArgProvider
-     * 
-     * @param string $arg
-     */
-    public function testIsHelpNeededWhenHProvidedAndMoreOtherArgs_False($arg)
+    public function testLoadOptionEmpty()
     {
-        
-        $this->setExpectedException('RuntimeException');
-        
-        $this->cli->despatch(3, array('this/path/is/arg/as/wel', $arg, 'test\ModuleTest', 'else'));
-        
-    }
-    
-    public function testIsHelpNeededWhenOtherArgsProvided_False()
-    {
-        
-        $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest', 'else'));
-        
-        $status = $this->invokeMethod($this->cli, 'isHelpNeeded');
-        
-        $this->assertFalse($status);
-        
-    }
-    
-    /**
-     * Module name provided
-     */
-    public function testIsModuleProvided_True()
-    {
-        
-        $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest'));
-        
-        $status = $this->invokeMethod($this->cli, 'isModuleProvided');
-        
-        $this->assertTrue($status);
-        
-    }
-    
-    /**
-     * Module name is not provided
-     */
-    public function testIsModuleProvided_False()
-    {
-        
-        $this->setExpectedException('RuntimeException', null, CliCodes::MOD_ERR);
-        
-        $this->cli->despatch(3, array());
-        
-    }
-    
-    /**
-     * Assume that user want to execute it module without extra options
-     * Just simple execute it
-     */
-    public function testLoadInternalOption_Empty()
-    {
-        
-        $status = $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest'));
-        
-        $this->assertNull($status);
-        
+        $this->expectException('RuntimeException');
+        $this->cli->despatch(array('test\ModuleTestNoOptions'));
     }
     
     public function optionsProvider()
-    {
-        
+    { 
         return array(
           array('-t'),
           array('--test')
-        );
-        
+        );   
     }
     
     /**
@@ -161,61 +100,51 @@ class TestCli extends \PHPUnit_Framework_TestCase {
      * 
      * @param string $option
      */
-    public function testLoadInternalOption_IsLoadedOk($option)
+    public function testLoadInternalOption($option)
     {
-        
         // look in to ModuleTest::testMe()
-        $this->setExpectedException('RuntimeException', null, CliCodes::OPT_FAIL);
-        
-        $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest', $option));
-        
+        $this->expectException('RuntimeException');
+        $this->cli->despatch(array($option, 'test\ModuleTest'));
     }
     
-    public function testLoadInternalOption_IsArgumentValid()
+    public function testProcessFile()
     {
-        
-        $this->setExpectedException('RuntimeException', null, CliCodes::OPT_FAIL);
-        
-        $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest', '-o'));
-        
+        $this->cli->despatch(array('--lock', '--exit', 'test\ModuleTest'));
+        $mtest = new ModuleTest();
+        $files = $mtest->getProcessFiles();
+        $this->assertIsArray($files);
+        $file = end($files);
+        $data = $mtest->parseProcessFile($file);
+        $this->assertTrue(isset($data['PID']));
+        $this->assertIsInt($data['PID']);
+        $this->assertTrue(isset($data['DATE']));
+        $this->assertTrue(isset($data['NAME']));
+        $this->assertTrue(isset($data['DESC']));
+        $this->assertTrue(isset($data['FILE']));
+        $this->assertTrue(isset($data['AVG_OP_TIME']));
+        $this->assertTrue(isset($data['LOCK']));
+        $this->assertIsBool($data['LOCK']);
+        $this->assertTrue($data['LOCK']);
     }
     
-    public function testLoadInternalOption_ArgumentMethodNotExists()
+    public function testFindLockedProcess()
     {
-        
-        $this->setExpectedException('RuntimeException', null, CliCodes::OPT_METH_ERR);
-        
-        $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest', '-n'));
-        
+        $this->cli->despatch(array('--lock', '--exit', 'test\ModuleTest'));
+        $mtest = new ModuleTest();
+        $this->assertIsArray($mtest->findLockedProcess());
     }
     
-    public function testIsFilePathProvidedForWriteOutputOption_True()
+    public function testDeleteProcessFile()
     {
-        
-        $status = $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest', '-w', '/tmp/abc.log'));
-        
-        unlink('/tmp/abc.log');
-        
-        $this->assertNull($status);
-        
+        $this->cli->despatch(array('--lock', 'test\ModuleTest'));
+        $mtest = new ModuleTest();
+        $this->assertFalse($mtest->findLockedProcess());
     }
     
-    public function testIsFilePathProvidedForWriteOutputOption_False()
+    public function testLoadInternalOptionDuplicate()
     {
-        
-        $this->setExpectedException('RuntimeException', null, CliCodes::OPT_WRITE_NO_FILE);
-        
-        $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest', '--write-output'));
-        
-    }
-    
-    public function testIsFileWritableForOption_False() 
-    {
-        
-        $this->setExpectedException('RuntimeException', null, CliCodes::OPT_FILE_PER_ERR);
-        
-        $this->cli->despatch(3, array('this/path/is/arg/as/wel', 'test\ModuleTest', '-w', '/no/exists/abc.log'));
-        
+        $this->expectException('RuntimeException');        
+        $this->cli->despatch(array('test\ModuleTestDuplicateOption'));   
     }
     
 }
